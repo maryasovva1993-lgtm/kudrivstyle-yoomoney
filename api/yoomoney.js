@@ -5,6 +5,9 @@ export default async function handler(req, res) {
     return res.status(400).send("Нет кода авторизации");
   }
 
+  // при желании: проверяй state
+  // if (state !== process.env.OAUTH_STATE) return res.status(400).send("bad state");
+
   const body = new URLSearchParams({
     grant_type: "authorization_code",
     code,
@@ -13,14 +16,25 @@ export default async function handler(req, res) {
     redirect_uri: process.env.YOOMONEY_REDIRECT_URI,
   });
 
-  const r = await fetch("https://yoomoney.ru/oauth/token", {
-    method: "POST",
-    headers: { "Content-Type": "application/x-www-form-urlencoded" },
-    body,
-  });
+  try {
+    const r = await fetch("https://yoomoney.ru/oauth/token", {
+      method: "POST",
+      headers: { "Content-Type": "application/x-www-form-urlencoded" },
+      body,
+    });
+    const json = await r.json();
 
-  const json = await r.json();
-  console.log("YOOMONEY TOKEN:", json);
+    if (!r.ok || !json.access_token) {
+      return res
+        .status(400)
+        .send(`Ошибка получения токена: ${json.error || "unknown"}`);
+    }
 
-  return res.status(200).send("Готово! Токен получен. Проверь логи Vercel.");
+    // В проде токен не логируем. Можно показать только «хвост»,
+    // а сам токен сохранять в своём бекенде/хранилище.
+    const tail = json.access_token.slice(-4);
+    return res.status(200).send(`Готово! Токен получен (…${tail}).`);
+  } catch (e) {
+    return res.status(500).send("Server error");
+  }
 }
