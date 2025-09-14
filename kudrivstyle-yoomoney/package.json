@@ -1,0 +1,7 @@
+{
+  "name": "kudrivstyle-yoomoney",
+  "version": "1.0.0",
+  "scripts": {
+    "start": "next start"
+  }
+}
